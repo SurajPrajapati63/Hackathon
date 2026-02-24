@@ -12,12 +12,12 @@ class UserModel:
 
     @staticmethod
     def collection(db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return db[UserModel.collection_name]
 
     @staticmethod
     async def create_user(user_data: dict, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         user = {
             "name": user_data.get("name"),
             "email": user_data.get("email"),
@@ -26,15 +26,16 @@ class UserModel:
             "is_active": user_data.get("is_active", True),
             "created_at": datetime.utcnow(),
         }
+        db = db if db is not None else get_database()
         result = await UserModel.collection(db).insert_one(user)
         return str(result.inserted_id)
 
     @staticmethod
     async def get_by_email(email: str, db=None) -> Optional[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return await UserModel.collection(db).find_one({"email": email})
 
     @staticmethod
     async def get_by_id(user_id: str, db=None) -> Optional[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return await UserModel.collection(db).find_one({"_id": ObjectId(user_id)})

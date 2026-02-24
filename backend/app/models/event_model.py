@@ -12,12 +12,12 @@ class EventModel:
 
     @staticmethod
     def collection(db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return db[EventModel.collection_name]
 
     @staticmethod
     async def create_event(event_data: dict, db=None) -> str:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         doc = {
             "title": event_data.get("title") or event_data.get("name"),
             "description": event_data.get("description"),
@@ -37,28 +37,28 @@ class EventModel:
 
     @staticmethod
     async def get_by_id(event_id: str, db=None) -> Optional[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return await EventModel.collection(db).find_one({"_id": ObjectId(event_id)})
 
     @staticmethod
     async def get_all(db=None) -> List[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         cursor = EventModel.collection(db).find()
         return await cursor.to_list(length=200)
 
     @staticmethod
     async def get_by_organizer(organizer_id: str, db=None) -> List[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         cursor = EventModel.collection(db).find({"organizer_id": organizer_id})
         return await cursor.to_list(length=200)
 
     @staticmethod
     async def update_event(event_id: str, updates: dict, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         _id = event_id if isinstance(event_id, ObjectId) else ObjectId(event_id)
         await EventModel.collection(db).update_one({"_id": _id}, {"$set": updates})
 
     @staticmethod
     async def delete_event(event_id: str, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         await EventModel.collection(db).delete_one({"_id": ObjectId(event_id)})

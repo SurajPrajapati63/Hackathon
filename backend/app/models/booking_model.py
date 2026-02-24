@@ -10,12 +10,12 @@ class BookingModel:
 
 	@staticmethod
 	def collection(db=None):
-		db = db or get_database()
+		db = db if db is not None else get_database()
 		return db[BookingModel.collection_name]
 
 	@staticmethod
 	async def create_booking(booking_data: dict, db=None) -> str:
-		db = db or get_database()
+		db = db if db is not None else get_database()
 		doc = {
 			"user_id": booking_data.get("user_id"),
 			"event_id": booking_data.get("event_id"),
@@ -31,24 +31,24 @@ class BookingModel:
 
 	@staticmethod
 	async def get_by_id(booking_id: str, db=None) -> Optional[dict]:
-		db = db or get_database()
+		db = db if db is not None else get_database()
 		return await BookingModel.collection(db).find_one({"_id": ObjectId(booking_id)})
 
 	@staticmethod
 	async def update_booking(booking_id: str, updates: dict, db=None):
-		db = db or get_database()
+		db = db if db is not None else get_database()
 		_id = booking_id if isinstance(booking_id, ObjectId) else ObjectId(booking_id)
 		await BookingModel.collection(db).update_one({"_id": _id}, {"$set": updates})
 
 	@staticmethod
 	async def list_by_user(user_id: str, db=None) -> List[dict]:
-		db = db or get_database()
+		db = db if db is not None else get_database()
 		cursor = BookingModel.collection(db).find({"user_id": user_id})
 		return await cursor.to_list(length=100)
 
 	@staticmethod
 	async def get_by_event(event_id: str, db=None) -> List[dict]:
-		db = db or get_database()
+		db = db if db is not None else get_database()
 		cursor = BookingModel.collection(db).find({"event_id": event_id})
 		return await cursor.to_list(length=200)
 

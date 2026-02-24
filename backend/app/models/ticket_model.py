@@ -12,12 +12,12 @@ class TicketModel:
 
     @staticmethod
     def collection(db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return db[TicketModel.collection_name]
 
     @staticmethod
     async def create_ticket(ticket_data: dict, db=None) -> str:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         ticket = {
             "ticket_code": ticket_data.get("ticket_code"),
             "booking_id": ticket_data.get("booking_id"),
@@ -33,23 +33,23 @@ class TicketModel:
 
     @staticmethod
     async def get_by_code(code: str, db=None) -> Optional[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return await TicketModel.collection(db).find_one({"ticket_code": code})
 
     @staticmethod
     async def update_status(ticket_id: str, status: str, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         _id = ticket_id if isinstance(ticket_id, ObjectId) else ObjectId(ticket_id)
         await TicketModel.collection(db).update_one({"_id": _id}, {"$set": {"status": status}})
     
     @staticmethod
     async def get_by_booking(booking_id: str, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         cursor = TicketModel.collection(db).find({"booking_id": booking_id})
         return await cursor.to_list(length=200)
 
     @staticmethod
     async def update_ticket(ticket_id: str, updates: dict, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         _id = ticket_id if isinstance(ticket_id, ObjectId) else ObjectId(ticket_id)
         await TicketModel.collection(db).update_one({"_id": _id}, {"$set": updates})

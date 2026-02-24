@@ -9,12 +9,12 @@ class OrderModel:
 
     @staticmethod
     def collection(db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return db[OrderModel.collection_name]
 
     @staticmethod
     async def create_order(order_data: dict, db=None) -> str:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         from bson import ObjectId
 
         order = {
@@ -30,7 +30,7 @@ class OrderModel:
 
     @staticmethod
     async def update_status(order_id: str, status: str, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         from bson import ObjectId
 
         _id = order_id if isinstance(order_id, ObjectId) else ObjectId(order_id)

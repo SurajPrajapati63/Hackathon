@@ -12,12 +12,12 @@ class SupportModel:
 
     @staticmethod
     def collection(db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return db[SupportModel.collection_name]
 
     @staticmethod
     async def create_ticket(ticket_data: dict, db=None) -> str:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         ticket = {
             "user_id": ticket_data.get("user_id"),
             "subject": ticket_data.get("subject"),
@@ -34,24 +34,24 @@ class SupportModel:
 
     @staticmethod
     async def get_by_user(user_id: str, db=None) -> List[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         cursor = SupportModel.collection(db).find({"user_id": user_id})
         return await cursor.to_list(length=100)
 
     @staticmethod
     async def get_all(db=None) -> List[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         cursor = SupportModel.collection(db).find()
         return await cursor.to_list(length=200)
 
     @staticmethod
     async def get_by_id(ticket_id: str, db=None) -> Optional[dict]:
-        db = db or get_database()
+        db = db if db is not None else get_database()
         return await SupportModel.collection(db).find_one({"_id": ObjectId(ticket_id)})
 
     @staticmethod
     async def update_ticket(ticket_id: str, update_data: dict, db=None):
-        db = db or get_database()
+        db = db if db is not None else get_database()
         await SupportModel.collection(db).update_one(
             {"_id": ObjectId(ticket_id)},
             {"$set": update_data}
