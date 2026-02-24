@@ -6,7 +6,7 @@ from app.dependencies import get_current_user
 from app.services.venue_service import VenueService
 from app.services.refund_service import RefundService
 from app.services.support_service import SupportService
-from app.models.user_model import UserModel
+from app.models.user_models import UserModel
 from app.models.booking_model import BookingModel
 
 
@@ -34,8 +34,7 @@ def require_admin(user: dict):
 async def get_all_users(current_user: dict = Depends(get_current_user)):
 
     require_admin(current_user)
-
-    users = await UserModel.collection.find().to_list(length=200)
+    users = await UserModel.collection().find().to_list(length=200)
     return users
 
 
@@ -79,8 +78,7 @@ async def reject_refund(refund_id: str, data: dict, current_user: dict = Depends
 async def get_all_bookings(current_user: dict = Depends(get_current_user)):
 
     require_admin(current_user)
-
-    bookings = await BookingModel.collection.find().to_list(length=200)
+    bookings = await BookingModel.collection().find().to_list(length=200)
     return bookings
 
 

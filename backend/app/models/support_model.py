@@ -2,40 +2,57 @@
 
 from datetime import datetime
 from bson import ObjectId
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from typing import Optional, List
+
+from app.db import get_database
 
 
-class SupportCaseModel:
+class SupportModel:
     collection_name = "support_cases"
 
     @staticmethod
-    def collection(db):
-        return db[SupportCaseModel.collection_name]
+    def collection(db=None):
+        db = db or get_database()
+        return db[SupportModel.collection_name]
 
     @staticmethod
-    async def create_case(db, user_id, subject, description,
-                          related_order_id=None):
-        case = {
-            "user_id": ObjectId(user_id),
-            "subject": subject,
-            "description": description,
-            "related_order_id": ObjectId(related_order_id) if related_order_id else None,
-            "status": "open",  # open | in_progress | resolved | closed
-            "resolution_notes": None,
-            "assigned_to": None,
-            "created_at": datetime.utcnow()
+    async def create_ticket(ticket_data: dict, db=None) -> str:
+        db = db or get_database()
+        ticket = {
+            "user_id": ticket_data.get("user_id"),
+            "subject": ticket_data.get("subject"),
+            "description": ticket_data.get("description"),
+            "category": ticket_data.get("category"),
+            "booking_id": ticket_data.get("booking_id"),
+            "status": ticket_data.get("status", "open"),
+            "admin_response": ticket_data.get("admin_response"),
+            "created_at": ticket_data.get("created_at", datetime.utcnow()),
+            "updated_at": ticket_data.get("updated_at", datetime.utcnow()),
         }
-        result = await SupportCaseModel.collection(db).insert_one(case)
-        case["_id"] = result.inserted_id
-        return case
+        result = await SupportModel.collection(db).insert_one(ticket)
+        return str(result.inserted_id)
 
     @staticmethod
-    async def update_status(db, case_id, status, resolution_notes=None):
-        update = {"status": status}
-        if resolution_notes:
-            update["resolution_notes"] = resolution_notes
+    async def get_by_user(user_id: str, db=None) -> List[dict]:
+        db = db or get_database()
+        cursor = SupportModel.collection(db).find({"user_id": user_id})
+        return await cursor.to_list(length=100)
 
-        await SupportCaseModel.collection(db).update_one(
-            {"_id": ObjectId(case_id)},
-            {"$set": update}
+    @staticmethod
+    async def get_all(db=None) -> List[dict]:
+        db = db or get_database()
+        cursor = SupportModel.collection(db).find()
+        return await cursor.to_list(length=200)
+
+    @staticmethod
+    async def get_by_id(ticket_id: str, db=None) -> Optional[dict]:
+        db = db or get_database()
+        return await SupportModel.collection(db).find_one({"_id": ObjectId(ticket_id)})
+
+    @staticmethod
+    async def update_ticket(ticket_id: str, update_data: dict, db=None):
+        db = db or get_database()
+        await SupportModel.collection(db).update_one(
+            {"_id": ObjectId(ticket_id)},
+            {"$set": update_data}
         )

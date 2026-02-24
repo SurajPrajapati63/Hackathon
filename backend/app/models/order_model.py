@@ -1,34 +1,37 @@
-# backend/app/models/order_model.py
-
 from datetime import datetime
-from bson import ObjectId
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from typing import Optional
+
+from app.db import get_database
 
 
 class OrderModel:
     collection_name = "orders"
 
     @staticmethod
-    def collection(db):
+    def collection(db=None):
+        db = db or get_database()
         return db[OrderModel.collection_name]
 
     @staticmethod
-    async def create_order(db, user_id, event_id, total_amount, payment_mode):
+    async def create_order(order_data: dict, db=None) -> str:
+        db = db or get_database()
+        from bson import ObjectId
+
         order = {
-            "user_id": ObjectId(user_id),
-            "event_id": ObjectId(event_id),
-            "total_amount": total_amount,
-            "payment_mode": payment_mode,
-            "order_status": "pending",  # pending | confirmed | cancelled | refunded
+            "user_id": ObjectId(order_data.get("user_id")),
+            "event_id": ObjectId(order_data.get("event_id")),
+            "total_amount": order_data.get("total_amount"),
+            "payment_mode": order_data.get("payment_mode"),
+            "order_status": order_data.get("order_status", "pending"),
             "booking_time": datetime.utcnow()
         }
         result = await OrderModel.collection(db).insert_one(order)
-        order["_id"] = result.inserted_id
-        return order
+        return str(result.inserted_id)
 
     @staticmethod
-    async def update_status(db, order_id, status):
-        await OrderModel.collection(db).update_one(
-            {"_id": ObjectId(order_id)},
-            {"$set": {"order_status": status}}
-        )
+    async def update_status(order_id: str, status: str, db=None):
+        db = db or get_database()
+        from bson import ObjectId
+
+        _id = order_id if isinstance(order_id, ObjectId) else ObjectId(order_id)
+        await OrderModel.collection(db).update_one({"_id": _id}, {"$set": {"order_status": status}})

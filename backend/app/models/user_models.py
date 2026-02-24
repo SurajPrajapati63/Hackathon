@@ -2,38 +2,39 @@
 
 from datetime import datetime
 from bson import ObjectId
-<<<<<<< HEAD
-from app.db import db
-from app.core.roles import UserRole
-=======
-from motor.motor_asyncio import AsyncIOMotorDatabase
->>>>>>> 90311fb5e67d0399c89df62fdb9cba6ef34480da
+from typing import Optional
+
+from app.db import get_database
 
 
 class UserModel:
     collection_name = "users"
 
     @staticmethod
-    def collection(db: AsyncIOMotorDatabase):
+    def collection(db=None):
+        db = db or get_database()
         return db[UserModel.collection_name]
 
     @staticmethod
-    async def create_user(db, name, email, hashed_password, role):
+    async def create_user(user_data: dict, db=None):
+        db = db or get_database()
         user = {
-            "name": name,
-            "email": email,
-            "password": hashed_password,
-            "role": role,  # admin | organizer | customer | entry_manager | support
-            "created_at": datetime.utcnow()
+            "name": user_data.get("name"),
+            "email": user_data.get("email"),
+            "password": user_data.get("password"),
+            "role": user_data.get("role", "customer"),
+            "is_active": user_data.get("is_active", True),
+            "created_at": datetime.utcnow(),
         }
         result = await UserModel.collection(db).insert_one(user)
-        user["_id"] = result.inserted_id
-        return user
+        return str(result.inserted_id)
 
     @staticmethod
-    async def get_by_email(db, email):
+    async def get_by_email(email: str, db=None) -> Optional[dict]:
+        db = db or get_database()
         return await UserModel.collection(db).find_one({"email": email})
 
     @staticmethod
-    async def get_by_id(db, user_id):
+    async def get_by_id(user_id: str, db=None) -> Optional[dict]:
+        db = db or get_database()
         return await UserModel.collection(db).find_one({"_id": ObjectId(user_id)})
