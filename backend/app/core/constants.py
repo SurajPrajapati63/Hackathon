@@ -1,0 +1,27 @@
+"""
+Application constants
+"""
+
+# User Roles
+ADMIN_ROLE = "admin"
+ORGANIZER_ROLE = "organizer"
+CUSTOMER_ROLE = "customer"
+
+ALL_ROLES = [ADMIN_ROLE, ORGANIZER_ROLE, CUSTOMER_ROLE]
+
+# Status constants
+BOOKING_STATUS_PENDING = "pending"
+BOOKING_STATUS_CONFIRMED = "confirmed"
+BOOKING_STATUS_CANCELLED = "cancelled"
+
+TICKET_STATUS_VALID = "valid"
+TICKET_STATUS_USED = "used"
+TICKET_STATUS_CANCELLED = "cancelled"
+
+REFUND_STATUS_PENDING = "pending"
+REFUND_STATUS_APPROVED = "approved"
+REFUND_STATUS_REJECTED = "rejected"
+
+SUPPORT_STATUS_OPEN = "open"
+SUPPORT_STATUS_IN_PROGRESS = "in_progress"
+SUPPORT_STATUS_CLOSED = "closed"
