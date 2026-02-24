@@ -47,6 +47,11 @@ class BookingModel:
 		return await cursor.to_list(length=100)
 
 	@staticmethod
+	async def get_by_user(user_id: str, db=None) -> List[dict]:
+		"""Compatibility wrapper used by routers/services expecting `get_by_user`."""
+		return await BookingModel.list_by_user(user_id, db=db)
+
+	@staticmethod
 	async def get_by_event(event_id: str, db=None) -> List[dict]:
 		db = db if db is not None else get_database()
 		cursor = BookingModel.collection(db).find({"event_id": event_id})

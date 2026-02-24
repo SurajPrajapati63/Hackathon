@@ -7,6 +7,15 @@ from app.services.event_service import EventService
 from app.services.entry_service import EntryService
 from app.schemas.event_schema import EventCreate, EventUpdate
 from app.models.booking_model import BookingModel
+from app.services.seat_service import SeatService
+from pydantic import BaseModel
+
+
+# -----------------------------
+# Seats Create Request
+# -----------------------------
+class SeatsCreateRequest(BaseModel):
+    seat_numbers: list
 
 
 router = APIRouter(
@@ -123,3 +132,18 @@ async def get_event_entries(
     require_organizer(current_user)
 
     return await EntryService.get_event_entries(event_id)
+
+
+# -----------------------------
+# Create Seats for Event
+# -----------------------------
+@router.post("/events/{event_id}/seats")
+async def create_event_seats(
+    event_id: str,
+    data: SeatsCreateRequest,
+    current_user: dict = Depends(get_current_user)
+):
+
+    require_organizer(current_user)
+
+    return await SeatService.create_seats(event_id, data.seat_numbers)

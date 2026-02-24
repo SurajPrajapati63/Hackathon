@@ -12,6 +12,8 @@ from app.schemas.booking_schema import BookingCreate
 from app.schemas.support_schema import SupportCreate
 from app.schemas.refund_schema import RefundCreate
 from app.models.booking_model import BookingModel
+from app.services.auth_services import AuthService
+from app.schemas.user_schemas import UserRegister, UserLogin
 
 
 router = APIRouter(
@@ -98,6 +100,28 @@ async def get_my_bookings(current_user: dict = Depends(get_current_user)):
 
 
 # -----------------------------
+# View Booking Summary
+# -----------------------------
+@router.get("/bookings/{booking_id}")
+async def get_booking(booking_id: str, current_user: dict = Depends(get_current_user)):
+
+    require_customer(current_user)
+
+    return await BookingService.get_booking_summary(booking_id, str(current_user["_id"]))
+
+
+# -----------------------------
+# Cancel / Close Booking
+# -----------------------------
+@router.post("/bookings/{booking_id}/cancel")
+async def cancel_booking(booking_id: str, current_user: dict = Depends(get_current_user)):
+
+    require_customer(current_user)
+
+    return await BookingService.cancel_booking(booking_id, str(current_user["_id"]))
+
+
+# -----------------------------
 # View My Tickets
 # -----------------------------
 @router.get("/tickets")
@@ -108,6 +132,46 @@ async def get_my_tickets(current_user: dict = Depends(get_current_user)):
     return await TicketService.get_user_tickets(
         str(current_user["_id"])
     )
+
+
+# -----------------------------
+# View Available Seats for Event
+# -----------------------------
+@router.get("/events/{event_id}/seats")
+async def get_event_seats(event_id: str, current_user: dict = Depends(get_current_user)):
+
+    require_customer(current_user)
+
+    from app.services.seat_service import SeatService
+
+    return await SeatService.get_event_seats(event_id)
+
+
+# -----------------------------
+# View Single Ticket
+# -----------------------------
+@router.get("/tickets/{ticket_id}")
+async def get_ticket(ticket_id: str, current_user: dict = Depends(get_current_user)):
+
+    require_customer(current_user)
+
+    return await TicketService.get_ticket(ticket_id)
+
+
+# -----------------------------
+# Customer Signup
+# -----------------------------
+@router.post("/register")
+async def customer_register(data: UserRegister):
+    return await AuthService.register(data)
+
+
+# -----------------------------
+# Customer Login
+# -----------------------------
+@router.post("/login")
+async def customer_login(data: UserLogin):
+    return await AuthService.login(data)
 
 
 # -----------------------------

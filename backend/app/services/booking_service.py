@@ -132,6 +132,41 @@ class BookingService:
         }
 
     # -----------------------------
+    # Get Booking Summary
+    # -----------------------------
+    @staticmethod
+    async def get_booking_summary(booking_id: str, user_id: str):
+
+        booking = await BookingModel.get_by_id(booking_id)
+
+        if not booking:
+            raise HTTPException(
+                status_code=404,
+                detail="Booking not found"
+            )
+
+        if booking["user_id"] != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized"
+            )
+
+        # Build summary
+        summary = {
+            "booking_id": booking_id,
+            "user_id": booking["user_id"],
+            "event_id": booking["event_id"],
+            "seat_numbers": booking["seat_numbers"],
+            "total_amount": booking.get("total_amount"),
+            "booking_status": booking.get("booking_status"),
+            "payment_status": booking.get("payment_status"),
+            "created_at": booking.get("created_at"),
+            "updated_at": booking.get("updated_at")
+        }
+
+        return summary
+
+    # -----------------------------
     # Cancel Booking
     # -----------------------------
     @staticmethod

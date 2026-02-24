@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.roles import UserRole
 from app.dependencies import get_current_user
 from app.services.venue_service import VenueService
+from app.schemas.venue_schema import VenueCreate
 from app.services.refund_service import RefundService
 from app.services.support_service import SupportService
 from app.models.user_models import UserModel
@@ -42,7 +43,7 @@ async def get_all_users(current_user: dict = Depends(get_current_user)):
 # Create Venue
 # -----------------------------
 @router.post("/venues")
-async def create_venue(data: dict, current_user: dict = Depends(get_current_user)):
+async def create_venue(data: VenueCreate, current_user: dict = Depends(get_current_user)):
 
     require_admin(current_user)
 

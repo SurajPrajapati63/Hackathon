@@ -56,6 +56,8 @@ class EventModel:
     async def update_event(event_id: str, updates: dict, db=None):
         db = db if db is not None else get_database()
         _id = event_id if isinstance(event_id, ObjectId) else ObjectId(event_id)
+        updates = dict(updates)
+        updates["updated_at"] = datetime.utcnow()
         await EventModel.collection(db).update_one({"_id": _id}, {"$set": updates})
 
     @staticmethod

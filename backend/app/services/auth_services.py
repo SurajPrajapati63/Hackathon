@@ -78,7 +78,10 @@ class AuthService:
                 "id": str(user["_id"]),
                 "name": user["name"],
                 "email": user["email"],
-                "role": user["role"],
-                "is_active": user["is_active"]
+                "role": user.get("role"),
+                "is_active": user.get("is_active", True),
+                "is_verified": user.get("is_verified", False),
+                "created_at": user.get("created_at"),
+                "updated_at": user.get("updated_at")
             }
         }

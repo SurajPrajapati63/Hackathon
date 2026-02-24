@@ -35,6 +35,14 @@ class RefundService:
                 detail="Only confirmed bookings can be refunded"
             )
 
+        # Only allow refund if event is still in the future
+        event = await EventModel.get_by_id(booking["event_id"])
+        if event and event.get("event_date") and event.get("event_date") <= datetime.utcnow():
+            raise HTTPException(
+                status_code=400,
+                detail="Refunds can only be requested before the event date"
+            )
+
         # Check if refund already exists
         existing_refund = await RefundModel.get_by_booking(booking_id)
         if existing_refund:

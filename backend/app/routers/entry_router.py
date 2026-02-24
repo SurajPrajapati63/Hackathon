@@ -5,6 +5,9 @@ from app.dependencies import get_current_user
 from app.services.entry_service import EntryService
 from app.core.roles import UserRole
 from pydantic import BaseModel
+from app.services.auth_services import AuthService
+from app.schemas.user_schemas import UserLogin
+
 
 
 router = APIRouter(
@@ -48,6 +51,24 @@ async def validate_ticket(
         staff_id=str(current_user["_id"]),
         device_info=data.device_info
     )
+
+
+# -----------------------------
+# Entry Manager Login
+# -----------------------------
+@router.post("/login")
+async def entry_login(login_data: UserLogin):
+    """Login endpoint for entry managers (Admin or Organizer only)."""
+    resp = await AuthService.login(login_data)
+
+    user = resp.get("user")
+    if not user or user.get("role") not in [UserRole.ADMIN.value, UserRole.ORGANIZER.value]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Entry access restricted to Admin or Organizer"
+        )
+
+    return resp
 
 
 # -----------------------------

@@ -53,3 +53,14 @@ class TicketModel:
         db = db if db is not None else get_database()
         _id = ticket_id if isinstance(ticket_id, ObjectId) else ObjectId(ticket_id)
         await TicketModel.collection(db).update_one({"_id": _id}, {"$set": updates})
+
+    @staticmethod
+    async def get_by_user(user_id: str, db=None):
+        db = db if db is not None else get_database()
+        cursor = TicketModel.collection(db).find({"user_id": user_id})
+        return await cursor.to_list(length=200)
+
+    @staticmethod
+    async def get_by_id(ticket_id: str, db=None):
+        db = db if db is not None else get_database()
+        return await TicketModel.collection(db).find_one({"_id": ObjectId(ticket_id)})

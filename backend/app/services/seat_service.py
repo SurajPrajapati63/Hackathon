@@ -20,6 +20,18 @@ class SeatService:
         return seats
 
     # -----------------------------
+    # Create Seats for Event
+    # -----------------------------
+    @staticmethod
+    async def create_seats(event_id: str, seat_numbers: list):
+        created = []
+        for seat_number in seat_numbers:
+            # create_seat returns inserted id
+            sid = await SeatModel.create_seat(event_id, seat_number)
+            created.append(sid)
+        return {"message": "Seats created", "created_count": len(created)}
+
+    # -----------------------------
     # Lock Seats (Before Payment)
     # -----------------------------
     @staticmethod
