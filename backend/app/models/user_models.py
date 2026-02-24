@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from bson import ObjectId
-from app.database import db
+from app.db import db
 from app.core.roles import UserRole
 
 

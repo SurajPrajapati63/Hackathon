@@ -1,56 +1,84 @@
+# backend/app/services/auth_service.py
+
 from fastapi import HTTPException, status
-from backend.app.db import get_db
-from utils.hash import hash_password, verify_password
-from utils.jwt_handler import create_access_token
-from utils.logger import logger
+from datetime import timedelta
+from app.models.user_models import UserModel
+from app.schemas.user_schemas import UserRegister, UserLogin
+from app.core.security import (
+    hash_password,
+    verify_password,
+    create_access_token
+)
+from app.core.constants import ACCESS_TOKEN_EXPIRE_MINUTES
 
 
-async def register_user(user):
-    db = get_db()
+class AuthService:
 
-    existing_user = await db.users.find_one({"email": user.email})
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+    # -----------------------------
+    # Register User
+    # -----------------------------
+    @staticmethod
+    async def register(user_data: UserRegister):
+
+        # Check if email already exists
+        existing_user = await UserModel.get_by_email(user_data.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+
+        # Hash password
+        hashed_pwd = hash_password(user_data.password)
+
+        user_dict = user_data.model_dump()
+        user_dict["password"] = hashed_pwd
+
+        user_id = await UserModel.create_user(user_dict)
+
+        return {"message": "User registered successfully", "user_id": user_id}
+
+    # -----------------------------
+    # Login User
+    # -----------------------------
+    @staticmethod
+    async def login(login_data: UserLogin):
+
+        user = await UserModel.get_by_email(login_data.email)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+
+        # Verify password
+        if not verify_password(login_data.password, user["password"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+
+        # Create JWT token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+        token = create_access_token(
+            data={
+                "sub": str(user["_id"]),
+                "role": user["role"],
+                "email": user["email"]
+            },
+            expires_delta=access_token_expires
         )
 
-    hashed_pwd = hash_password(user.password)
-
-    new_user = {
-        "name": user.name,
-        "email": user.email,
-        "password": hashed_pwd
-    }
-
-    await db.users.insert_one(new_user)
-
-    logger.info(f"New user registered: {user.email}")
-
-    return {"message": "User registered successfully"}
-
-
-async def login_user(user):
-    db = get_db()
-
-    db_user = await db.users.find_one({"email": user.email})
-    if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
-
-    if not verify_password(user.password, db_user["password"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
-
-    token = create_access_token({"sub": user.email})
-
-    logger.info(f"User logged in: {user.email}")
-
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {
+                "id": str(user["_id"]),
+                "name": user["name"],
+                "email": user["email"],
+                "role": user["role"],
+                "is_active": user["is_active"]
+            }
+        }

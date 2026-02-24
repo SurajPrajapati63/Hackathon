@@ -1,11 +1,27 @@
 from fastapi import FastAPI
-from routers.auth_router import router as auth_router
+from app.routers import auth_router
+from app.db import client
 
-app = FastAPI(title="Auth API")
+app = FastAPI(
+    title="Event Ticket Booking API",
+    version="1.0.0"
+)
 
-app.include_router(auth_router)
+
+# -----------------------------
+# Database Startup Check
+# -----------------------------
+@app.on_event("startup")
+async def startup_db():
+    try:
+        await client.admin.command("ping")
+        print("✅ MongoDB Connected Successfully!")
+    except Exception as e:
+        print("❌ MongoDB Connection Failed!")
+        print(str(e))
 
 
-@app.get("/")
-def root():
-    return {"message": "API Running 🚀"}
+# -----------------------------
+# Include Routers
+# -----------------------------
+app.include_router(auth_routes.router)

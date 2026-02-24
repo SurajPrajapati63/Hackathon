@@ -1,15 +1,44 @@
-from fastapi import APIRouter
-from schemas.auth_schemas import RegisterSchema, LoginSchema
-from services.auth_services import register_user, login_user
+# backend/app/routes/auth_routes.py
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+from fastapi import APIRouter, status
+from app.schemas.user_schemas import (
+    UserRegister,
+    UserLogin,
+    TokenResponse
+)
+from app.services.auth_services import AuthService
 
 
-@router.post("/register")
-async def register(user: RegisterSchema):
-    return await register_user(user)
+router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"]
+)
 
 
-@router.post("/login")
-async def login(user: LoginSchema):
-    return await login_user(user)
+# -----------------------------
+# Register Endpoint
+# -----------------------------
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED
+)
+async def register(user_data: UserRegister):
+    """
+    Register a new user
+    """
+    return await AuthService.register(user_data)
+
+
+# -----------------------------
+# Login Endpoint
+# -----------------------------
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK
+)
+async def login(login_data: UserLogin):
+    """
+    Login user and return JWT token
+    """
+    return await AuthService.login(login_data)
