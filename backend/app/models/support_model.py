@@ -1,34 +1,41 @@
+# backend/app/models/support_model.py
+
 from datetime import datetime
 from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
-def support_case_entity(support) -> dict:
-    return {
-        "id": str(support["_id"]),
-        "user_id": str(support["user_id"]),
-        "order_id": str(support.get("order_id")) if support.get("order_id") else None,
-        "category": support["category"],
-        "description": support["description"],
-        "status": support["status"],
-        "resolution_notes": support.get("resolution_notes"),
-        "created_at": support["created_at"],
-        "updated_at": support["updated_at"],
-    }
+class SupportCaseModel:
+    collection_name = "support_cases"
 
+    @staticmethod
+    def collection(db):
+        return db[SupportCaseModel.collection_name]
 
-def support_case_model(
-    user_id: ObjectId,
-    category: str,
-    description: str,
-    order_id: ObjectId = None,
-):
-    return {
-        "user_id": user_id,
-        "order_id": order_id,  # optional
-        "category": category,  # refund / technical / other
-        "description": description,
-        "status": "open",  # open | in_progress | resolved
-        "resolution_notes": None,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-    }
+    @staticmethod
+    async def create_case(db, user_id, subject, description,
+                          related_order_id=None):
+        case = {
+            "user_id": ObjectId(user_id),
+            "subject": subject,
+            "description": description,
+            "related_order_id": ObjectId(related_order_id) if related_order_id else None,
+            "status": "open",  # open | in_progress | resolved | closed
+            "resolution_notes": None,
+            "assigned_to": None,
+            "created_at": datetime.utcnow()
+        }
+        result = await SupportCaseModel.collection(db).insert_one(case)
+        case["_id"] = result.inserted_id
+        return case
+
+    @staticmethod
+    async def update_status(db, case_id, status, resolution_notes=None):
+        update = {"status": status}
+        if resolution_notes:
+            update["resolution_notes"] = resolution_notes
+
+        await SupportCaseModel.collection(db).update_one(
+            {"_id": ObjectId(case_id)},
+            {"$set": update}
+        )

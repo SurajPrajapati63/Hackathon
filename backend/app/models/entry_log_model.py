@@ -1,28 +1,24 @@
+# backend/app/models/entry_log_model.py
+
 from datetime import datetime
 from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
-def entry_log_entity(entry) -> dict:
-    return {
-        "id": str(entry["_id"]),
-        "ticket_id": str(entry["ticket_id"]),
-        "event_id": str(entry["event_id"]),
-        "validated_by": str(entry["validated_by"]),
-        "validation_status": entry["validation_status"],
-        "entry_time": entry["entry_time"],
-    }
+class EntryLogModel:
+    collection_name = "entry_logs"
 
+    @staticmethod
+    def collection(db):
+        return db[EntryLogModel.collection_name]
 
-def entry_log_model(
-    ticket_id: ObjectId,
-    event_id: ObjectId,
-    validated_by: ObjectId,
-    validation_status: str,
-):
-    return {
-        "ticket_id": ticket_id,
-        "event_id": event_id,
-        "validated_by": validated_by,  # entry manager ID
-        "validation_status": validation_status,  # success | failed
-        "entry_time": datetime.utcnow(),
-    }
+    @staticmethod
+    async def log_entry(db, ticket_id, entry_manager_id):
+        log = {
+            "ticket_id": ObjectId(ticket_id),
+            "entry_manager_id": ObjectId(entry_manager_id),
+            "entry_time": datetime.utcnow()
+        }
+        result = await EntryLogModel.collection(db).insert_one(log)
+        log["_id"] = result.inserted_id
+        return log

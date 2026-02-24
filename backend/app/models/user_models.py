@@ -2,40 +2,33 @@
 
 from datetime import datetime
 from bson import ObjectId
-from app.database import db
-from app.core.roles import UserRole
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 class UserModel:
-    collection = db["users"]
+    collection_name = "users"
 
     @staticmethod
-    async def create_user(user_data: dict):
-        user_data["role"] = user_data.get("role", UserRole.CUSTOMER)
-        user_data["is_active"] = True
-        user_data["is_verified"] = False
-        user_data["created_at"] = datetime.utcnow()
-        user_data["updated_at"] = datetime.utcnow()
-
-        result = await UserModel.collection.insert_one(user_data)
-        return str(result.inserted_id)
+    def collection(db: AsyncIOMotorDatabase):
+        return db[UserModel.collection_name]
 
     @staticmethod
-    async def get_by_email(email: str):
-        return await UserModel.collection.find_one({"email": email})
+    async def create_user(db, name, email, hashed_password, role):
+        user = {
+            "name": name,
+            "email": email,
+            "password": hashed_password,
+            "role": role,  # admin | organizer | customer | entry_manager | support
+            "created_at": datetime.utcnow()
+        }
+        result = await UserModel.collection(db).insert_one(user)
+        user["_id"] = result.inserted_id
+        return user
 
     @staticmethod
-    async def get_by_id(user_id: str):
-        return await UserModel.collection.find_one({"_id": ObjectId(user_id)})
+    async def get_by_email(db, email):
+        return await UserModel.collection(db).find_one({"email": email})
 
     @staticmethod
-    async def update_user(user_id: str, update_data: dict):
-        update_data["updated_at"] = datetime.utcnow()
-        return await UserModel.collection.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": update_data}
-        )
-
-    @staticmethod
-    async def delete_user(user_id: str):
-        return await UserModel.collection.delete_one({"_id": ObjectId(user_id)})
+    async def get_by_id(db, user_id):
+        return await UserModel.collection(db).find_one({"_id": ObjectId(user_id)})
