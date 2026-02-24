@@ -29,7 +29,13 @@ class AuthService:
             )
 
         # Hash password
-        hashed_pwd = hash_password(user_data.password)
+        try:
+            hashed_pwd = hash_password(user_data.password)
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc)
+            ) from exc
 
         user_dict = user_data.model_dump()
         user_dict["password"] = hashed_pwd

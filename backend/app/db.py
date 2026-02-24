@@ -1,5 +1,6 @@
 from app.config import settings
 from typing import Any
+from fastapi import HTTPException, status
 
 # Delay importing motor until we actually connect to avoid import-time errors
 
@@ -39,7 +40,16 @@ async def close_mongo_connection():
 
 
 def get_database():
+    if database is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database is not connected. Check Mongo configuration and startup logs.",
+        )
     return database
+
+
+def is_database_connected() -> bool:
+    return database is not None
 
 
 async def create_indexes():

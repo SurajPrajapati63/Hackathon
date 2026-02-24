@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.middleware.cors import add_cors_middleware
 from app.middleware.logging_middleware import LoggingMiddleware
-from app.db import connect_to_mongo, close_mongo_connection
+from app.db import connect_to_mongo, close_mongo_connection, is_database_connected
 from app.routers.auth_router import router as auth_router
 from app.routers.admin_router import router as admin_router
 from app.routers.organizer_router import router as organizer_router
@@ -46,4 +46,9 @@ async def shutdown():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "Server is running 🚀"}
+    db_connected = is_database_connected()
+    return {
+        "status": "ok" if db_connected else "degraded",
+        "message": "Server is running",
+        "database_connected": db_connected,
+    }

@@ -1,9 +1,14 @@
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
+from jose import jwt
 from passlib.context import CryptContext
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Prefer pbkdf2_sha256 to avoid hard runtime dependency on bcrypt backends.
+# bcrypt is kept for backward compatibility when verifying existing hashes.
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256", "bcrypt"],
+    deprecated="auto",
+)
 
 ALGORITHM = "HS256"
 
@@ -12,11 +17,17 @@ ALGORITHM = "HS256"
 # Password Hashing
 # -----------------------------
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    try:
+        return pwd_context.hash(password, scheme="pbkdf2_sha256")
+    except Exception as exc:
+        raise RuntimeError("Password hashing backend unavailable") from exc
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception:
+        return False
 
 
 # -----------------------------
