@@ -1,14 +1,21 @@
 # backend/app/routes/admin_router.py
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from app.core.roles import UserRole
 from app.dependencies import get_current_user
 from app.services.venue_service import VenueService
 from app.schemas.venue_schema import VenueCreate
-from app.services.refund_service import RefundService
 from app.services.support_service import SupportService
 from app.models.user_models import UserModel
 from app.models.booking_model import BookingModel
+from app.services.event_service import EventService
+from app.schemas.event_schema import EventStatus, EventCreate
+
+
+# Request model for event status update
+class EventStatusUpdate(BaseModel):
+    status: EventStatus
 
 
 router = APIRouter(
@@ -51,28 +58,6 @@ async def create_venue(data: VenueCreate, current_user: dict = Depends(get_curre
 
 
 # -----------------------------
-# Approve Refund
-# -----------------------------
-@router.put("/refunds/{refund_id}/approve")
-async def approve_refund(refund_id: str, current_user: dict = Depends(get_current_user)):
-
-    require_admin(current_user)
-
-    return await RefundService.approve_refund(refund_id)
-
-
-# -----------------------------
-# Reject Refund
-# -----------------------------
-@router.put("/refunds/{refund_id}/reject")
-async def reject_refund(refund_id: str, data: dict, current_user: dict = Depends(get_current_user)):
-
-    require_admin(current_user)
-
-    return await RefundService.reject_refund(refund_id, data.get("admin_note"))
-
-
-# -----------------------------
 # Get All Bookings
 # -----------------------------
 @router.get("/bookings")
@@ -92,3 +77,22 @@ async def get_all_support_tickets(current_user: dict = Depends(get_current_user)
     require_admin(current_user)
 
     return await SupportService.get_all_tickets()
+
+
+# -----------------------------
+# Update Event Status (Admin)
+# -----------------------------
+@router.put("/events/{event_id}/status")
+async def update_event_status(
+    event_id: str,
+    data: EventStatusUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+
+    require_admin(current_user)
+
+    return await EventService.update_event(
+        event_id,
+        {"status": data.status.value},
+        current_user
+    )

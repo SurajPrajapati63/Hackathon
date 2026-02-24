@@ -1,10 +1,12 @@
 # backend/app/routes/support_router.py
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from app.dependencies import get_current_user
 from app.core.roles import UserRole
 from app.services.support_service import SupportService
-from app.schemas.support_schema import SupportCreate, SupportUpdate
+from app.services.refund_service import RefundService
+from app.schemas.support_schema import SupportCreate, SupportUpdate, ResolutionNoteCreate
 
 
 router = APIRouter(
@@ -109,4 +111,104 @@ async def update_ticket(
     return await SupportService.update_ticket(
         ticket_id,
         data.model_dump(exclude_none=True)
+    )
+
+
+# =============================
+# REFUND MANAGEMENT (Support Executive)
+# =============================
+
+# Approve Refund
+# -----------------------------
+@router.put("/refunds/{refund_id}/approve")
+async def approve_refund(refund_id: str, current_user: dict = Depends(get_current_user)):
+
+    require_admin(current_user)
+
+    return await RefundService.approve_refund(refund_id)
+
+
+# Reject Refund
+# -----------------------------
+class RefundRejectData(BaseModel):
+    admin_note: str = None
+
+
+# Reject Refund
+# -----------------------------
+class RefundRejectData(BaseModel):
+    admin_note: str = None
+
+
+@router.put("/refunds/{refund_id}/reject")
+async def reject_refund(
+    refund_id: str,
+    data: RefundRejectData,
+    current_user: dict = Depends(get_current_user)
+):
+
+    require_admin(current_user)
+
+    return await RefundService.reject_refund(refund_id, data.admin_note)
+
+
+# =============================
+# RESOLUTION NOTES MANAGEMENT
+# =============================
+
+# Add Resolution Note
+# -----
+@router.post("/{ticket_id}/notes")
+async def add_resolution_note(
+    ticket_id: str,
+    data: ResolutionNoteCreate,
+    current_user: dict = Depends(get_current_user)
+):
+
+    require_admin(current_user)
+
+    user_name = current_user.get("name", current_user.get("email", "Admin"))
+
+    return await SupportService.add_resolution_note(
+        ticket_id,
+        data.note,
+        str(current_user["_id"]),
+        user_name
+    )
+
+
+# Get Resolution Notes
+# -----
+@router.get("/{ticket_id}/notes")
+async def get_resolution_notes(
+    ticket_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+
+    return await SupportService.get_resolution_notes(
+        ticket_id,
+        str(current_user["_id"]),
+        current_user["role"]
+    )
+
+
+# Delete Resolution Note
+# -----
+class DeleteNoteRequest(BaseModel):
+    note_index: int
+
+
+@router.delete("/{ticket_id}/notes/{note_index}")
+async def delete_resolution_note(
+    ticket_id: str,
+    note_index: int,
+    current_user: dict = Depends(get_current_user)
+):
+
+    require_admin(current_user)
+
+    return await SupportService.delete_resolution_note(
+        ticket_id,
+        note_index,
+        str(current_user["_id"])
     )

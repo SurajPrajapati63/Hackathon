@@ -26,6 +26,7 @@ class SupportModel:
             "booking_id": ticket_data.get("booking_id"),
             "status": ticket_data.get("status", "open"),
             "admin_response": ticket_data.get("admin_response"),
+            "resolution_notes": [],
             "created_at": ticket_data.get("created_at", datetime.utcnow()),
             "updated_at": ticket_data.get("updated_at", datetime.utcnow()),
         }

@@ -167,6 +167,98 @@ class BookingService:
         return summary
 
     # -----------------------------
+    # Get Booking Summary (For Organizer)
+    # -----------------------------
+    @staticmethod
+    async def get_booking_summary_for_organizer(booking_id: str, event_id: str, organizer_id: str):
+
+        booking = await BookingModel.get_by_id(booking_id)
+
+        if not booking:
+            raise HTTPException(
+                status_code=404,
+                detail="Booking not found"
+            )
+
+        if booking["event_id"] != event_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Booking does not belong to this event"
+            )
+
+        # Verify event ownership
+        event = await EventModel.get_by_id(event_id)
+        if not event or event.get("organizer_id") != organizer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized"
+            )
+
+        # Build summary
+        summary = {
+            "booking_id": booking_id,
+            "user_id": booking["user_id"],
+            "event_id": booking["event_id"],
+            "seat_numbers": booking["seat_numbers"],
+            "total_amount": booking.get("total_amount"),
+            "booking_status": booking.get("booking_status"),
+            "payment_status": booking.get("payment_status"),
+            "created_at": booking.get("created_at"),
+            "updated_at": booking.get("updated_at")
+        }
+
+        return summary
+
+    # -----------------------------
+    # Cancel Booking (For Organizer)
+    # -----------------------------
+    @staticmethod
+    async def cancel_booking_for_organizer(booking_id: str, event_id: str, organizer_id: str):
+
+        booking = await BookingModel.get_by_id(booking_id)
+
+        if not booking:
+            raise HTTPException(
+                status_code=404,
+                detail="Booking not found"
+            )
+
+        if booking["event_id"] != event_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Booking does not belong to this event"
+            )
+
+        # Verify event ownership
+        event = await EventModel.get_by_id(event_id)
+        if not event or event.get("organizer_id") != organizer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized"
+            )
+
+        if booking["booking_status"] != "confirmed":
+            raise HTTPException(
+                status_code=400,
+                detail="Only confirmed bookings can be cancelled"
+            )
+
+        # Release Seats
+        for seat_number in booking["seat_numbers"]:
+            await SeatService.release_expired_locks()
+
+        await BookingModel.update_booking(
+            booking_id,
+            {
+                "booking_status": "cancelled",
+                "payment_status": "refunded",
+                "updated_at": datetime.utcnow()
+            }
+        )
+
+        return {"message": "Booking cancelled successfully"}
+
+    # -----------------------------
     # Cancel Booking
     # -----------------------------
     @staticmethod

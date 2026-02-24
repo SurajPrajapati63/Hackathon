@@ -9,11 +9,86 @@ from app.models.event_model import EventModel
 
 class EntryService:
 
-    # -----------------------------
-    # Validate Ticket & Allow Entry
-    # -----------------------------
+    # =============================
+    # TICKET VALIDATION
+    # =============================
+
+    # Check Ticket Validity (Without Marking as Used)
+    # -----
     @staticmethod
-    async def validate_entry(ticket_code: str, staff_id: str, device_info: str = None):
+    async def check_ticket_validity(ticket_code: str):
+        """Check if a ticket is valid without marking it as used."""
+
+        # 1️⃣ Check ticket exists
+        ticket = await TicketModel.get_by_code(ticket_code)
+
+        if not ticket:
+            return {
+                "valid": False,
+                "message": "Invalid ticket code",
+                "ticket_id": None,
+                "seat_number": None,
+                "event_id": None,
+                "ticket_status": None
+            }
+
+        # 2️⃣ Check ticket status
+        if ticket["status"] == "cancelled":
+            return {
+                "valid": False,
+                "message": "Ticket is cancelled",
+                "ticket_id": str(ticket["_id"]),
+                "seat_number": ticket.get("seat_number"),
+                "event_id": ticket["event_id"],
+                "ticket_status": "cancelled"
+            }
+
+        if ticket["status"] == "used":
+            return {
+                "valid": False,
+                "message": "Ticket already used",
+                "ticket_id": str(ticket["_id"]),
+                "seat_number": ticket.get("seat_number"),
+                "event_id": ticket["event_id"],
+                "ticket_status": "used"
+            }
+
+        # 3️⃣ Check event date
+        event = await EventModel.get_by_id(ticket["event_id"])
+
+        if not event:
+            return {
+                "valid": False,
+                "message": "Event not found",
+                "ticket_id": str(ticket["_id"]),
+                "seat_number": ticket.get("seat_number"),
+                "event_id": ticket["event_id"],
+                "ticket_status": ticket["status"]
+            }
+
+        if event["event_date"] < datetime.utcnow():
+            return {
+                "valid": False,
+                "message": "Event has already ended",
+                "ticket_id": str(ticket["_id"]),
+                "seat_number": ticket.get("seat_number"),
+                "event_id": ticket["event_id"],
+                "ticket_status": ticket["status"],
+                "event_date": event.get("event_date")
+            }
+
+        # Ticket is valid
+        return {
+            "valid": True,
+            "message": "Ticket is valid",
+            "ticket_id": str(ticket["_id"]),
+            "seat_number": ticket.get("seat_number"),
+            "event_id": ticket["event_id"],
+            "ticket_status": ticket["status"],
+            "event_date": event.get("event_date"),
+            "event_title": event.get("title"),
+            "booking_id": ticket.get("booking_id")
+        }
 
         # 1️⃣ Check ticket exists
         ticket = await TicketModel.get_by_code(ticket_code)
@@ -93,3 +168,135 @@ class EntryService:
 
         logs = await EntryLogModel.get_by_ticket(ticket_id)
         return logs
+
+    # =============================
+    # ADDITIONAL ENTRY MANAGEMENT
+    # =============================
+
+    # Mark Ticket as Unread
+    # (Reset from "used" back to "active")
+    # -----
+    @staticmethod
+    async def mark_ticket_unread(ticket_code: str, staff_id: str):
+
+        # 1️⃣ Check ticket exists
+        ticket = await TicketModel.get_by_code(ticket_code)
+
+        if not ticket:
+            return {
+                "valid": False,
+                "message": "Invalid ticket code"
+            }
+
+        # 2️⃣ Check ticket status is "used"
+        if ticket["status"] != "used":
+            return {
+                "valid": False,
+                "message": "Ticket is not marked as used"
+            }
+
+        # 3️⃣ Mark ticket as active (unread)
+        await TicketModel.update_ticket(
+            ticket["_id"],
+            {
+                "status": "active",
+                "updated_at": datetime.utcnow()
+            }
+        )
+
+        return {
+            "valid": True,
+            "message": "Ticket marked as unread (active)",
+            "ticket_id": str(ticket["_id"]),
+            "seat_number": ticket["seat_number"]
+        }
+
+    # Reject Invalid Ticket
+    # -----
+    @staticmethod
+    async def reject_invalid_ticket(ticket_code: str, staff_id: str, reason: str = None):
+
+        # 1️⃣ Check ticket exists
+        ticket = await TicketModel.get_by_code(ticket_code)
+
+        if not ticket:
+            return {
+                "valid": False,
+                "message": "Invalid ticket code"
+            }
+
+        # 2️⃣ Check if already cancelled
+        if ticket["status"] == "cancelled":
+            return {
+                "valid": False,
+                "message": "Ticket is already cancelled"
+            }
+
+        # 3️⃣ Mark ticket as cancelled
+        await TicketModel.update_ticket(
+            ticket["_id"],
+            {
+                "status": "cancelled",
+                "rejection_reason": reason or "Rejected at gate",
+                "rejected_by": staff_id,
+                "rejected_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+        )
+
+        # 4️⃣ Create rejection log
+        rejection_log = {
+            "ticket_id": str(ticket["_id"]),
+            "event_id": ticket["event_id"],
+            "rejected_by": staff_id,
+            "rejection_time": datetime.utcnow(),
+            "rejection_reason": reason or "Rejected at gate",
+        }
+
+        await EntryLogModel.create_entry(rejection_log)
+
+        return {
+            "valid": False,
+            "message": "Ticket rejected and cancelled",
+            "ticket_id": str(ticket["_id"]),
+            "reason": reason or "Rejected at gate"
+        }
+
+    # Reject Already Used Ticket
+    # -----
+    @staticmethod
+    async def reject_used_ticket(ticket_code: str, staff_id: str):
+
+        # 1️⃣ Check ticket exists
+        ticket = await TicketModel.get_by_code(ticket_code)
+
+        if not ticket:
+            return {
+                "valid": False,
+                "message": "Invalid ticket code"
+            }
+
+        # 2️⃣ Check if already used
+        if ticket["status"] != "used":
+            return {
+                "valid": False,
+                "message": "Ticket is not marked as used"
+            }
+
+        # 3️⃣ Create duplicate entry log
+        duplicate_log = {
+            "ticket_id": str(ticket["_id"]),
+            "event_id": ticket["event_id"],
+            "rejected_by": staff_id,
+            "rejection_time": datetime.utcnow(),
+            "rejection_reason": "Duplicate entry attempt - ticket already used",
+        }
+
+        await EntryLogModel.create_entry(duplicate_log)
+
+        return {
+            "valid": False,
+            "message": "Ticket already used - duplicate entry rejected",
+            "ticket_id": str(ticket["_id"]),
+            "seat_number": ticket["seat_number"]
+        }

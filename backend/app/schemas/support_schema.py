@@ -53,6 +53,18 @@ class SupportUpdate(BaseModel):
     admin_response: Optional[str] = None
 
 
+# Add Resolution Note
+# -----------------------------
+class ResolutionNoteCreate(BaseModel):
+    note: str = Field(..., min_length=5, max_length=1000)
+
+
+class ResolutionNote(BaseModel):
+    note: str
+    added_by: str
+    added_at: datetime
+
+
 # -----------------------------
 # Support Response Schema
 # -----------------------------
@@ -65,6 +77,7 @@ class SupportResponse(BaseModel):
     booking_id: Optional[str]
     status: SupportStatus
     admin_response: Optional[str]
+    resolution_notes: Optional[list] = None
     created_at: datetime
     updated_at: datetime
 

@@ -5,6 +5,7 @@ from app.dependencies import get_current_user
 from app.core.roles import UserRole
 from app.services.event_service import EventService
 from app.services.entry_service import EntryService
+from app.services.booking_service import BookingService
 from app.schemas.event_schema import EventCreate, EventUpdate
 from app.models.booking_model import BookingModel
 from app.services.seat_service import SeatService
@@ -147,3 +148,43 @@ async def create_event_seats(
     require_organizer(current_user)
 
     return await SeatService.create_seats(event_id, data.seat_numbers)
+
+
+# =============================
+# BOOKING MANAGEMENT (Organizer)
+# =============================
+
+# View Booking Summary for Event
+# -----------------------------
+@router.get("/events/{event_id}/bookings/{booking_id}")
+async def get_event_booking_summary(
+    event_id: str,
+    booking_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+
+    require_organizer(current_user)
+
+    return await BookingService.get_booking_summary_for_organizer(
+        booking_id,
+        event_id,
+        str(current_user["_id"])
+    )
+
+
+# Close/Cancel Booking for Event
+# -----------------------------
+@router.post("/events/{event_id}/bookings/{booking_id}/close")
+async def close_event_booking(
+    event_id: str,
+    booking_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+
+    require_organizer(current_user)
+
+    return await BookingService.cancel_booking_for_organizer(
+        booking_id,
+        event_id,
+        str(current_user["_id"])
+    )
